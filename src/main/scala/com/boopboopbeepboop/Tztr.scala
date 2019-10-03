@@ -1,5 +1,7 @@
 package com.boopboopbeepboop
 
+import com.boopboopbeepboop.step.{Assertion, Join, PureStepDecorator, SourceStep, Transform}
+
 import scala.util.{Failure, Success}
 
 object Tztr {

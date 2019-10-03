@@ -16,6 +16,8 @@ class ExampleSpec extends FunSpec with Matchers {
 
       ctx += str2.assert(_ shouldEqual "bar")
 
+      // In reality, you'd put all these asserts in one block. I'm separating them to test the flow
+
       val barAssert = out.assert(_ should include ("bar")) named "include bar"
       val fooAssert = out.assert(_ should include ("foo")) named "include foo"
 
@@ -23,6 +25,7 @@ class ExampleSpec extends FunSpec with Matchers {
           .assert(_._2 shouldEqual "foobar") named "equals foobar"
 
       // example with multiple asserts
+
       ctx += out.assert { result =>
         result should include("foo")
         result.length shouldEqual 6

@@ -1,4 +1,4 @@
-package com.boopboopbeepboop
+package com.boopboopbeepboop.step
 
 import com.boopboopbeepboop.Tztr.{Rename, Step}
 
