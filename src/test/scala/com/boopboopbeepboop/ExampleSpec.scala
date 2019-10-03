@@ -5,40 +5,32 @@ import org.scalatest._
 
 class ExampleSpec extends FunSpec with Matchers {
 
-  val str1 = pureSource {
-    println("init foo")
-    "foo"
-  }
-  val str2 = pureSource {
-    println("init bar")
-    "bar"
-  }
+  val str1 = source { "foo" } named "foo source" pure
+  val str2 = source { "bar" } named "bar source" pure
 
-  val out = pure {
-    for {
-      s1 <- str1
-      s2 <- str2
-    } yield {
-      println("combine")
-      s1 + s2
-    }
-  }
+  val out = (str1 join str2).map { case (a, b) => a + b } named "concatenate strings"
 
   describe("Testgen") {
-    implicit val ctx: Context = newContext
+    it("runs tests") {
+      val ctx = newContext
 
-    str2.assert(_ shouldEqual "bar")
+      ctx += str2.assert(_ shouldEqual "bar")
 
-    out.assert(_ should include ("bar"))
-    out.assert(_ should include ("foo"))
-    out.assert(_ shouldEqual "foobar")
+      val barAssert = out.assert(_ should include ("bar")) named "include bar"
+      val fooAssert = out.assert(_ should include ("foo")) named "include foo"
 
-    // example with multiple asserts
-    out.assert { result =>
-      result should include("foo")
-      result.length shouldEqual 6
+      ctx += (barAssert join fooAssert join out)
+          .assert(_._2 shouldEqual "foobar") named "equals foobar"
+
+      // example with multiple asserts
+      ctx += out.assert { result =>
+        result should include("foo")
+        result.length shouldEqual 6
+      }.named("includes foo, and length 6")
+
+      println(ctx.trace())
+
+      ctx.resolve()
     }
-
-    resolve
   }
 }

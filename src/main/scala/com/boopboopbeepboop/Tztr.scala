@@ -1,79 +1,70 @@
 package com.boopboopbeepboop
 
-import scala.util.{Failure, Success, Try}
+import scala.util.{Failure, Success}
 
 object Tztr {
 
   def newContext: Context = new DefaultContext()
 
-  def source[A](t: => A) = new SourceStep[A](t)
-  def pureSource[A](t: => A): Step[A] = new SourceStep[A](t).pure
-  def pure[A](step: Step[A]): Step[A] = step.pure
+  def source[A](t: => A) = new SourceStep[A](() => t)
 
-  def resolve(implicit context: Context) = {
-    context.resolve()
+  // tranformations of steps
+  def pure[A](step: Step[A]): Step[A] = step.pure
+  def name[A, B <: Step[A]](name: String)(step: B)(implicit ev: Rename[B]) = step.named(name)
+
+  case class TestPlan(tests: Seq[Test]) {
+    override def toString: String = s"TestPlan(\n  " + tests.map(_.toString).mkString("\n  ") + "\n)"
+  }
+  case class Test(seq: Seq[Step[_]]) {
+    override def toString: String = s"${seq.map(_.toString).mkString(" -> ")}"
   }
 
   trait Context {
-    def addAssertion(a: Assertion[_]): Unit
+    def += (a: Assertion[_]): Unit
+    def trace(): TestPlan
     def resolve(): Unit
   }
+
   class DefaultContext() extends Context {
     var assertions = Seq.empty[Assertion[_]]
 
-    override def addAssertion(a: Assertion[_]): Unit = assertions :+= a // yeah it's an append. Sue me
+    override def += (a: Assertion[_]): Unit = {
+
+      // yeah it's an append. Revise when I do better data structures for this graph.
+      assertions ++= a.trace().flatten.collect { case q: Assertion[_] => q }
+    }
     override def resolve(): Unit = {
       assertions.map(_.resolve()).foreach {
         case Success(_) => //
         case Failure(e) => throw new RuntimeException(e)
       }
     }
+
+    override def trace(): TestPlan = {
+      val tests = assertions.flatMap(_.trace()).map(Test)
+      TestPlan(tests)
+    }
   }
 
   trait Step[A] {
-    var downstream = Set.empty[Transform[A, _]]
+    def map[B](f: A => B): Transform[A, B] = new Transform[A, B](f, this)
+    def flatMap[B](f: A => Step[B]): Transform[A, B] = new Transform[A, B](f(_).resolve(), this)
 
-    def map[B](f: A => B): Step[B] = {
-      new Transform[A, B](f, this)
-    }
-    def flatMap[B](f: A => Step[B]): Step[B] = {
-      new Transform[A, B](f(_).resolve(), this)
-    }
-    def pure: Step[A] = new PureStepDecorator(this)
+    def join[B](other: Step[B]): Join[A, B] = new Join[A, B](this, other)
+
+    def pure: PureStepDecorator[A, Step[A]] = new PureStepDecorator(this)
+
     def resolve(): A
-    def assert(toAssert: A => Unit)(implicit context: Context): Assertion[A] = {
-      new Assertion(this, toAssert)
-    }
+    def trace(): Seq[Seq[Step[_]]]
 
-    protected def register(t: Transform[A, _]) = downstream += t
+    def assert(toAssert: A => Unit): Assertion[A] = Assertion(this, toAssert)
   }
 
-  class PureStepDecorator[A](wrapped: Step[A]) extends Step[A] {
-    lazy val cached = wrapped.resolve()
-    override def resolve(): A = cached
+  trait Rename[A] {
+    def rename(a: A, newName: String): A
   }
 
-  class SourceStep[A](
-    t: => A
-  ) extends Step[A] {
-
-    def resolve() = t
-  }
-
-  class Transform[A, B](
-    t: A => B,
-    prev: Step[A]
-  ) extends Step[B] {
-
-    def resolve() = t(prev.resolve())
-  }
-
-  class Assertion[A](prev: Step[A], toAssert: A => Unit)(implicit context: Context) {
-    context.addAssertion(this)
-
-    def resolve() = {
-      val resolved = prev.resolve()
-      Try(toAssert(resolved))
-    }
+  implicit class RenameOps[A](a: A)(implicit ev: Rename[A]) {
+    def named(newName: String) = ev.rename(a, newName)
   }
 }
