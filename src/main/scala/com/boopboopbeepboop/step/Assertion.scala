@@ -1,18 +1,17 @@
 package com.boopboopbeepboop.step
 
-import com.boopboopbeepboop.Tztr.{Rename, Step}
-
-import scala.util.Try
+import com.boopboopbeepboop.Step
+import com.boopboopbeepboop.Tztr.Rename
 
 case class Assertion[A](
   prev: Step[A],
   toAssert: A => Unit,
   name: Option[String] = None
-) extends Step[Try[A]] {
+) extends Step[A] {
+  implicit val self: Step[_] = this
 
   def resolve() = {
-    val resolved = prev.resolve()
-    Try {
+    prev.resolve().map { resolved =>
       toAssert(resolved)
       resolved
     }
@@ -20,6 +19,11 @@ case class Assertion[A](
 
   override def trace(): Seq[Seq[Step[_]]] = prev.trace().map(this +: _)
   override def toString = s"Assertion[${name.getOrElse("-")}]"
+
+  override def visit(f: Step[_] => Unit): Unit = {
+    f(this)
+    prev.visit(f)
+  }
 }
 
 object Assertion {
