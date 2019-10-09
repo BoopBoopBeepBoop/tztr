@@ -1,15 +1,16 @@
 package com.boopboopbeepboop.step
 
-import com.boopboopbeepboop.Tztr.Rename
+import com.boopboopbeepboop.Tztr.{Cleanup, Rename}
 import com.boopboopbeepboop.{Resolution, Step}
 
 case class SourceStep[A](
-  t: () => A,
-  name: Option[String] = None
+  protected val t: () => A,
+  protected val name: Option[String] = None,
+  protected val cleanupf: Option[A => Unit] = None
 ) extends Step[A] {
-  implicit val self: Step[_] = this
+  implicit val self: Step[A] = this
 
-  def resolve() = Resolution(Right(None), Nil).map(_ => t())
+  def resolve() = Resolution(t)
 
   override def trace(): Seq[Seq[Step[_]]] = Seq(Seq(this))
   override def visit(f: Step[_] => Unit): Unit = f(this)
@@ -19,5 +20,9 @@ case class SourceStep[A](
 object SourceStep {
   implicit def sourceRename[B]: Rename[SourceStep[B]] = {
     (a: SourceStep[B], newName: String) => a.copy(name = Some(newName))
+  }
+
+  implicit def sourceCleanup[A]: Cleanup[A, SourceStep] = {
+    (a: SourceStep[A], f: A => Unit) => a.copy(cleanupf = Some(f))
   }
 }

@@ -8,7 +8,7 @@ case class Assertion[A](
   toAssert: A => Unit,
   name: Option[String] = None
 ) extends Step[A] {
-  implicit val self: Step[_] = this
+  implicit val self: Step[A] = this
 
   def resolve() = {
     prev.resolve().map { resolved =>
@@ -24,6 +24,9 @@ case class Assertion[A](
     f(this)
     prev.visit(f)
   }
+
+  // no need to cleanup assertions
+  override val cleanupf: Option[A => Unit] = None
 }
 
 object Assertion {
