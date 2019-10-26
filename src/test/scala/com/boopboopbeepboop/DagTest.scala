@@ -54,10 +54,11 @@ class DagTest extends FunSpec with Matchers {
     }
 
     it("partially transforms a graph") {
-      val (newDag, _) = Dag.transform(join) { n =>
+      val (newDag, visited) = Dag.transform(join) { n =>
         val go = if (n.contains("split")) Halt else Continue
         DagChange(n + "_1", go)
       }
+      visited shouldEqual Set("split1_1", "split2_1", "join_1")
 
       val collected = Dag.visit(newDag)(_ => true)
       // this time, root should not be changed

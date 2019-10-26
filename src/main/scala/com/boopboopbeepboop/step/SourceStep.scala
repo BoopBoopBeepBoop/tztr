@@ -14,7 +14,7 @@ case class SourceStep[A](
 
   override def trace(): Seq[Seq[Step[_]]] = Seq(Seq(this))
   override def visit(f: Step[_] => Unit): Unit = f(this)
-  override def toString = s"S[${name.getOrElse("-")}]"
+  override def toString = s"Source(id:$id)[${name.getOrElse("-")}]"
 }
 
 object SourceStep {

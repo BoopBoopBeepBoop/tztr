@@ -53,17 +53,19 @@ class DefaultContext() extends Context {
 
 
     // after running all tests for this context, dirty all caches and do final cleanup
-    results.foldLeft(Set.empty[RunStep[_]]) { (seen, r) =>
+    results.foldLeft(Set.empty[Int]) { (seen, r) =>
 
-      println("FINAL DIRTY")
+      // force cache dirty
       Dag.visit(r.runDag) {
         case RunStep(c: CacheDecorator[_, _], _, _) => c.dirty(); true
         case _ => true
       }
 
-      println("FINAL CLEANUP")
-      val (_, alreadySeen) = Dag.transform(r.runDag, seen)(a => internalCleanup(a))
-      alreadySeen
+      val (_, alreadySeen) = Dag.transform[RunStep[_]](r.runDag) { runStep =>
+        if (!seen.contains(runStep.step.id)) internalCleanup(runStep)
+        else DagChange(runStep)
+      }
+      seen ++ alreadySeen.map(_.step.id)
     }
 
     val (numSuccess, numFailure) =

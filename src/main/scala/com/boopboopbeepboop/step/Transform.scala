@@ -18,7 +18,7 @@ case class Transform[A, B](
     f(this)
     prev.visit(f)
   }
-  override def toString = s"Transform[${name.getOrElse("-")}]"
+  override def toString = s"Transform(id:$id)[${name.getOrElse("-")}]"
 }
 
 object Transform {

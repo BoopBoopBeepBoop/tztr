@@ -1,11 +1,19 @@
 package com.boopboopbeepboop
 
-import com.boopboopbeepboop.step.{Assertion, CacheDecorator, Join, Transform}
+import java.util.concurrent.atomic.AtomicInteger
+
+import com.boopboopbeepboop.step.{Assertion, Join, Transform}
 import com.boopboopbeepboop.util.Dag.{Continue, ShouldContinue}
 
 case class CleanupResult(destroyed: Boolean, shouldContinue: ShouldContinue = Continue)
 
+object Step {
+  private val idSeq = new AtomicInteger(0)
+  def nextStepId() = idSeq.getAndIncrement()
+}
+
 trait Step[A] {
+  val id = Step.nextStepId()
 
   // ====== Common Properties ========
   protected def cleanupf: Option[A => Unit]

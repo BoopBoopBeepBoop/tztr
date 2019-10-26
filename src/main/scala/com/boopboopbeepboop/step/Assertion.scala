@@ -18,7 +18,7 @@ case class Assertion[A](
   }
 
   override def trace(): Seq[Seq[Step[_]]] = prev.trace().map(this +: _)
-  override def toString = s"Assertion[${name.getOrElse("-")}]"
+  override def toString = s"Assertion(id:$id)[${name.getOrElse("-")}]"
 
   override def visit(f: Step[_] => Unit): Unit = {
     f(this)

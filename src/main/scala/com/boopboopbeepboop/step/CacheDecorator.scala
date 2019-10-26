@@ -24,7 +24,7 @@ case class CacheDecorator[A, Wrapping <: Step[A]](
     result
   }
   override def trace(): Seq[Seq[Step[_]]] = wrapped.trace().map { this +: _ }
-  override def toString: String = s"Cache"
+  override def toString: String = s"Cache(id:$id)"
 
   def dirtyOnFailure: CacheDecorator[A, Wrapping] = {
     this.copy(dirtyOnAssertFailed = true)

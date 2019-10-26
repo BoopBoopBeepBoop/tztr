@@ -15,7 +15,7 @@ case class Join[A1, A2](
 
   override def trace(): Seq[Seq[Step[_]]] = left.trace().map(this +: _) ++ right.trace().map(this +: _)
 
-  override def toString: String = s"Join[${name.getOrElse("-")}]"
+  override def toString: String = s"Join(id:$id)[${name.getOrElse("-")}]"
 
   override def visit(f: Step[_] => Unit): Unit = {
     f(this)

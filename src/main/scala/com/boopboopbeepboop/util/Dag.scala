@@ -15,6 +15,13 @@ object Dag {
   case object Halt extends ShouldContinue
   case class DagChange[+T](newNode: T, continue: ShouldContinue = Continue)
 
+  def collectAll[T](dags: Seq[Dag[T]]): Set[T] = {
+    dags.foldLeft(Set.empty[T]) { (acc, next) =>
+      val items = visit(next)(!acc.contains(_))
+      acc ++ items
+    }
+  }
+
   def visit[T](dag: Dag[T], visited: Set[T] = Set.empty[T])(f: T => Boolean): Set[T] = {
     val seenAlready = visited.contains(dag.node)
 
@@ -26,10 +33,10 @@ object Dag {
   def transform[T](dag: Dag[T], transformed: Set[T] = Set.empty[T])(f: T => DagChange[T]): (Dag[T], Set[T]) = {
     val seenAlready = transformed.contains(dag.node)
 
-    val evaluated = f(dag.node)
-    val newNode = evaluated.newNode
-
     if(!seenAlready) {
+      val evaluated = f(dag.node)
+      val newNode = evaluated.newNode
+
       if (evaluated.continue) {
         val (visited, newParents) = dag.parents
           .foldLeft((transformed, Seq.empty[Dag[T]])) { (v, parent) =>
@@ -37,10 +44,10 @@ object Dag {
             (newTransformed, v._2 :+ newDag)
           }
 
-        (Dag(newNode, newParents), visited)
+        (Dag(newNode, newParents), visited + newNode)
       } else {
         // if Halt, transform node, but do not proceed
-        (Dag(newNode, dag.parents), transformed)
+        (Dag(newNode, dag.parents), transformed + newNode)
       }
     } else {
       (dag, transformed)
