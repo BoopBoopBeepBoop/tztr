@@ -1,18 +1,11 @@
 package com.boopboopbeepboop
 
-import com.boopboopbeepboop.step.{Assertion, SourceStep}
-
-import scala.util.{Failure, Success}
+import com.boopboopbeepboop.step.{Assertion, CacheDecorator, SourceStep}
 
 object Tztr {
 
   def newContext: Context = new DefaultContext()
-
   def source[A](t: => A) = new SourceStep[A](() => t)
-
-  // tranformations of steps
-  def pure[A](step: Step[A]): Step[A] = step.cache
-  def name[A, B <: Step[A]](name: String)(step: B)(implicit ev: Rename[B]) = step.named(name)
 
   case class TestPlan(tests: Seq[Test]) {
     override def toString: String = s"TestPlan(\n  " + tests.map(_.toString).mkString("\n  ") + "\n)"
@@ -29,23 +22,31 @@ object Tztr {
 
   case class TestSummary(numSuccess: Int, numFailed: Int)
 
-  trait Rename[A] {
-    def rename(a: A, newName: String): A
+  trait Rename[S] {
+    def rename(a: S, newName: String): S
   }
 
-  implicit class RenameOps[A](a: A)(implicit ev: Rename[A]) {
-    def named(newName: String) = ev.rename(a, newName)
+  implicit class RenameOps[S](a: S)(implicit ev: Rename[S]) {
+    def named(newName: String): S = ev.rename(a, newName)
   }
 
-  trait ProducesDirt[A] {
-    def dirties(a: A, other: CanBeDirtied): A
+  trait Cleanup[A, S[Q <: A] <: Step[Q]] {
+    def cleanup(step: S[A], f: A => Unit): S[A]
+  }
+
+  implicit class CleanupOps[A, S[Q <: A] <: Step[Q]](step: S[A])(implicit ev: Cleanup[A, S]) {
+    def cleanup(f: A => Unit): S[A] = ev.cleanup(step, f)
   }
 
   trait CanBeDirtied {
-    def dirty(): Unit
+    // returns whether to continue
+    def dirty(): Boolean
   }
 
-  implicit class DirtyOps[A](a: A)(implicit ev: ProducesDirt[A]) {
-    def dirties(other: CanBeDirtied) = ev.dirties(a, other)
+  // It appears that the [Q] needs to be here to create the equivalence (in the compiler's eyes) between S[Q] and
+  // Step[Q]. Using underbars doesn't work, and referencing A in the Step[] definition (which is what I tried initially)
+  // causes A to resolve as Nothing
+  implicit class CacheableOps[A, S[Q] <: Step[Q]](step: S[A]) {
+    def cache: CacheDecorator[A, S[A]] = new CacheDecorator[A, S[A]](step)
   }
 }

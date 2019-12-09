@@ -1,8 +1,9 @@
 name := "tztr"
-
-version := "0.1"
-
 scalaVersion := "2.12.8"
+
+ThisBuild / version          := "0.1.0-SNAPSHOT"
+ThisBuild / organization     := "com.boopboopbeepboop"
+ThisBuild / organizationName := "boopboopbeepboop"
 
 libraryDependencies ++= Seq(
   "com.jsuereth" %% "scala-arm" % "2.0",

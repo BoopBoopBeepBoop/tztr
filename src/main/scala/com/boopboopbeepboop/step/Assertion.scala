@@ -8,7 +8,7 @@ case class Assertion[A](
   toAssert: A => Unit,
   name: Option[String] = None
 ) extends Step[A] {
-  implicit val self: Step[_] = this
+  implicit val self: Step[A] = this
 
   def resolve() = {
     prev.resolve().map { resolved =>
@@ -18,12 +18,15 @@ case class Assertion[A](
   }
 
   override def trace(): Seq[Seq[Step[_]]] = prev.trace().map(this +: _)
-  override def toString = s"Assertion[${name.getOrElse("-")}]"
+  override def toString = s"Assertion(id:$id)[${name.getOrElse("-")}]"
 
   override def visit(f: Step[_] => Unit): Unit = {
     f(this)
     prev.visit(f)
   }
+
+  // no need to cleanup assertions
+  override val cleanupf: Option[A => Unit] = None
 }
 
 object Assertion {
