@@ -45,7 +45,10 @@ class DirtyCacheSpec extends FunSpec with Matchers {
         i shouldEqual 2
       }
 
-      ctx.resolve() shouldEqual TestSummary(2, 2)
+      val summary = ctx.resolve()
+      summary.print()
+      summary.numSuccess shouldEqual 2
+      summary.numFailed shouldEqual 2
     }
   }
 }

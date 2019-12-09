@@ -2,8 +2,10 @@ package com.boopboopbeepboop
 
 import java.util.concurrent.atomic.AtomicInteger
 
-import com.boopboopbeepboop.step.{Assertion, Join, Transform}
+import com.boopboopbeepboop.step.{Assertion, Join, Transform, WaitDecorator}
 import com.boopboopbeepboop.util.Dag.{Continue, ShouldContinue}
+
+import scala.concurrent.duration.FiniteDuration
 
 case class CleanupResult(destroyed: Boolean, shouldContinue: ShouldContinue = Continue)
 
@@ -24,6 +26,16 @@ trait Step[A] {
 
   def map[B](f: A => B): Transform[A, B] = new Transform[A, B](f, this)
   def join[B](other: Step[B]): Join[A, B] = new Join[A, B](this, other)
+
+  def waitUntil(
+    check: A => Boolean,
+    asLongAs: A => Boolean = _ => true,
+    interval: FiniteDuration,
+    maxTime: FiniteDuration,
+  ) = {
+    new WaitDecorator(this, check, asLongAs, interval, maxTime)
+  }
+
 
   def assert(name: String = "")(toAssert: A => Unit): Assertion[A] = {
     Assertion(

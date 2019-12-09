@@ -32,7 +32,7 @@ class ExampleSpec extends FunSpec with Matchers {
         result.length shouldEqual 6
       }
 
-      ctx.resolve()
+      ctx.resolve().print().throwOnFailure()
     }
   }
 }

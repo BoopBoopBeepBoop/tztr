@@ -1,6 +1,6 @@
 package com.boopboopbeepboop
 
-import com.boopboopbeepboop.Tztr.{Context, Test, TestPlan, TestSummary}
+import com.boopboopbeepboop.Tztr.{Context, Test, TestDetail, TestPlan, TestSummary}
 import com.boopboopbeepboop.step.{Assertion, CacheDecorator}
 import com.boopboopbeepboop.util.Dag
 import com.boopboopbeepboop.util.Dag.DagChange
@@ -34,10 +34,10 @@ class DefaultContext() extends Context {
 
     val results = assertions.map { a =>
       val res = a.resolve()
-      println(res)
+//      println(res)
 
       Dag.visit(res.runDag) { thing =>
-        println(s" ${thing.level}:${thing.step}")
+//        println(s" ${thing.level}:${thing.step}")
         true
       }
 
@@ -53,7 +53,7 @@ class DefaultContext() extends Context {
 
 
     // after running all tests for this context, dirty all caches and do final cleanup
-    results.foldLeft(Set.empty[Int]) { (seen, r) =>
+    val (_, details) = results.foldLeft((Set.empty[Int], Seq.empty[TestDetail])) { case ((seen, details), r) =>
 
       // force cache dirty
       Dag.visit(r.runDag) {
@@ -65,7 +65,12 @@ class DefaultContext() extends Context {
         if (!seen.contains(runStep.step.id)) internalCleanup(runStep)
         else DagChange(runStep)
       }
-      seen ++ alreadySeen.map(_.step.id)
+
+      val detail = TestDetail(
+        assertionNames = Seq(r.runDag.node.step.asInstanceOf[Assertion[_]].name.getOrElse("[none]")),
+        failure = r.item.left.toOption.map(_._1.exception))
+
+      (seen ++ alreadySeen.map(_.step.id), details :+ detail)
     }
 
     val (numSuccess, numFailure) =
@@ -73,7 +78,7 @@ class DefaultContext() extends Context {
         .map { r => r.item.fold(_ => (0, 1), _ => (1, 0)) }
         .reduce { (a, b) => (a._1 + b._1, a._2 + b._2) }
 
-    TestSummary(numSuccess, numFailure)
+    TestSummary(numSuccess, numFailure, details)
   }
 
   override def trace(): TestPlan = {
