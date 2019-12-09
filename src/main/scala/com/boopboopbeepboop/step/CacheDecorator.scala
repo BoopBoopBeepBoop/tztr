@@ -32,7 +32,6 @@ case class CacheDecorator[A, Wrapping <: Step[A]](
 
   // this will just invalidate the cache. Cleanup and destruction occur by the performCleanup cycle
   override def dirty(): Boolean = {
-    println("MARKED DIRTY")
     cached = None
     false
   }
@@ -41,7 +40,6 @@ case class CacheDecorator[A, Wrapping <: Step[A]](
     val defaultResult = CleanupResult(destroyed = false)
     val stopResult = CleanupResult(destroyed = false, Halt)
 
-    println("ATTEMPT CLEANUP")
     def actuallyRun() = {
       cleanupf.fold(defaultResult) { c =>
         c(a)

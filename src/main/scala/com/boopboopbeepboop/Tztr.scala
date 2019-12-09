@@ -20,7 +20,37 @@ object Tztr {
     def resolve(): TestSummary
   }
 
-  case class TestSummary(numSuccess: Int, numFailed: Int)
+  case class TestSummary(numSuccess: Int, numFailed: Int, testDetailList: Seq[TestDetail])
+  case class TestDetail(assertionNames: Seq[String], failure: Option[Throwable])
+
+  implicit class SummaryExt(testSummary: TestSummary) {
+    def print(): TestSummary = {
+      println(s"Test Summary: { success: ${testSummary.numSuccess}, failures: ${testSummary.numFailed} }")
+      testSummary.testDetailList.foreach { detail =>
+        val passed = detail.failure.isEmpty
+        detail.assertionNames.foreach { name =>
+          println(s"  [${ if (passed) "PASS" else "FAIL" }] - $name")
+        }
+      }
+
+      if (testSummary.numFailed > 0) {
+        println()
+        println("Failure Detail:")
+        testSummary.testDetailList.filter(_.failure.isDefined).foreach { detail =>
+          detail.assertionNames.foreach { name =>
+            println(s"$name:")
+            detail.failure.foreach(err => err.printStackTrace(System.out))
+          }
+        }
+      }
+      testSummary
+    }
+
+    def throwOnFailure(): TestSummary = {
+      if(testSummary.numFailed > 0) throw new RuntimeException("There are failed tests!")
+      testSummary
+    }
+  }
 
   trait Rename[S] {
     def rename(a: S, newName: String): S

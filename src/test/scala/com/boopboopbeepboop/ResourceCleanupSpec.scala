@@ -66,7 +66,10 @@ class ResourceCleanupSpec extends FunSpec with Matchers {
         res shouldEqual resources
       }
 
-      ctx.resolve() shouldEqual TestSummary(2, 0)
+      val summary = ctx.resolve()
+      summary.print()
+      summary.numSuccess shouldEqual 2
+      summary.numFailed shouldEqual 0
 
       resources.map { _.numTimesTornDown } shouldEqual Seq(1, 1, 1)
     }
@@ -94,7 +97,10 @@ class ResourceCleanupSpec extends FunSpec with Matchers {
         "foo" shouldEqual "foo"
       }
 
-      ctx.resolve() shouldEqual TestSummary(2, 0)
+      val summary = ctx.resolve()
+      summary.print()
+      summary.numSuccess shouldEqual 2
+      summary.numFailed shouldEqual 0
 
       resources2(0).numTimesTornDown shouldEqual 1
       resources2(1).numTimesTornDown shouldEqual 1
